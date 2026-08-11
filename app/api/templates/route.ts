@@ -1,0 +1,3 @@
+import {getSessionUserId} from '@/lib/session';import {many,one} from '@/lib/db';
+export async function GET(){const uid=await getSessionUserId();if(!uid)return Response.json({error:'Unauthorized'},{status:401});return Response.json(await many('SELECT * FROM templates WHERE user_id=$1 ORDER BY created_at DESC',[uid]))}
+export async function POST(req:Request){const uid=await getSessionUserId();if(!uid)return Response.json({error:'Unauthorized'},{status:401});const {name,subject,body}=await req.json();if(!name||!subject||!body)return Response.json({error:'Missing fields'},{status:400});const t=await one('INSERT INTO templates(user_id,name,subject,body) VALUES($1,$2,$3,$4) RETURNING *',[uid,name,subject,body]);return Response.json(t,{status:201})}

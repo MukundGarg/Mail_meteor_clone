@@ -1,0 +1,2 @@
+import crypto from 'crypto';import {NextResponse} from 'next/server';import {cookies} from 'next/headers';import {googleAuthUrl} from '@/lib/google';
+export async function GET(){const state=crypto.randomBytes(24).toString('hex');const c=await cookies();c.set('oauth_state',state,{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',maxAge:600});return NextResponse.redirect(googleAuthUrl(state))}

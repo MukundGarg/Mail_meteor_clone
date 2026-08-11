@@ -1,0 +1,26 @@
+{
+  "name": "mailmerge-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "worker": "node scripts/worker.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^17.4.2",
+    "googleapis": "^144.0.0",
+    "next": "^16.0.0",
+    "pg": "^8.13.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/pg": "^8.11.10",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.7.0"
+  }
+}
