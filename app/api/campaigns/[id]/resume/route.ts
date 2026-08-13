@@ -1,2 +1,0 @@
-import {NextRequest,NextResponse} from 'next/server';import {getSessionUserId} from '@/lib/session';import {db} from '@/lib/db';
-export async function POST(req:NextRequest,{params}:{params:Promise<{id:string}>}){const uid=await getSessionUserId();if(!uid)return new NextResponse('Unauthorized',{status:401});const {id}=await params;await db.query(`UPDATE campaigns SET status='SCHEDULED',scheduled_at=LEAST(scheduled_at,now()),updated_at=now() WHERE id=$1 AND user_id=$2 AND status='PAUSED'`,[id,uid]);return NextResponse.redirect(new URL('/campaigns/'+id,req.url),303)}

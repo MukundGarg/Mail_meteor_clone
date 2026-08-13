@@ -1,0 +1,12 @@
+.contact-editor input {
+  min-width: 0;
+  border: 1px solid #d9deea;
+  border-radius: 9px;
+  padding: 10px 11px;
+  outline: none;
+}
+
+.contact-editor input:focus {
+  border-color: #7194f5;
+  box-shadow: 0 0 0 3px #dce6ff;
+}

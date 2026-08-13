@@ -3,3 +3,10 @@
 .env*.local
 node_modules
 .next
+.npm-cache
+backend/.venv
+backend/.uv-cache
+backend/*.db
+backend/**/__pycache__
+.pytest_cache
+.ruff_cache

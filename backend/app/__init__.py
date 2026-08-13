@@ -1,0 +1,2 @@
+"""MailPilot API package."""
+
