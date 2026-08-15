@@ -20,7 +20,10 @@ SCOPES = [
 ]
 
 
-def oauth_flow(state: str | None = None) -> Flow:
+def oauth_flow(
+    state: str | None = None,
+    code_verifier: str | None = None,
+) -> Flow:
     config = {
         "web": {
             "client_id": settings.google_client_id,
@@ -30,8 +33,15 @@ def oauth_flow(state: str | None = None) -> Flow:
             "redirect_uris": [settings.google_redirect_uri],
         }
     }
-    return Flow.from_client_config(config, scopes=SCOPES, state=state, redirect_uri=settings.google_redirect_uri)
 
+    return Flow.from_client_config(
+        config,
+        scopes=SCOPES,
+        state=state,
+        redirect_uri=settings.google_redirect_uri,
+        code_verifier=code_verifier,
+        autogenerate_code_verifier=code_verifier is None,
+    )
 
 def credentials_for(user: User) -> Credentials:
     creds = Credentials(

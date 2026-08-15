@@ -44,44 +44,126 @@ def campaign_json(campaign: Campaign) -> dict:
 async def health() -> dict:
     return {"status": "ok"}
 
-
 @router.get("/auth/google/start")
 async def google_start(request: Request) -> RedirectResponse:
     if not settings.google_client_id:
         raise HTTPException(status_code=503, detail="Google OAuth is not configured")
+
     state = secrets.token_urlsafe(32)
+
     flow = oauth_flow()
-    url, _ = flow.authorization_url(access_type="offline", prompt="consent", state=state)
+    url, _ = flow.authorization_url(
+        access_type="offline",
+        prompt="consent",
+        state=state,
+    )
+
     response = RedirectResponse(url)
-    response.set_cookie("oauth_state", state, httponly=True, samesite="lax", secure=request.url.scheme == "https", max_age=600)
+
+    response.set_cookie(
+        "oauth_state",
+        state,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https",
+        max_age=600,
+    )
+
+    response.set_cookie(
+        "oauth_code_verifier",
+        flow.code_verifier,
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https",
+        max_age=600,
+    )
+
     return response
 
 
 @router.get("/auth/google/callback")
-async def google_callback(request: Request, db: AsyncSession = Depends(get_db)) -> RedirectResponse:
+async def google_callback(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> RedirectResponse:
     state = request.query_params.get("state")
+
     if not state or state != request.cookies.get("oauth_state"):
         raise HTTPException(status_code=400, detail="Invalid OAuth state")
-    flow = oauth_flow(state)
+
+    code_verifier = request.cookies.get("oauth_code_verifier")
+
+    if not code_verifier:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing OAuth code verifier",
+        )
+
+    flow = oauth_flow(
+        state=state,
+        code_verifier=code_verifier,
+    )
+
     callback_url = f"{settings.google_redirect_uri}?{request.url.query}"
-    flow.fetch_token(authorization_response=callback_url)
+
+    flow.fetch_token(
+        authorization_response=callback_url,
+    )
+
     if not flow.credentials.refresh_token:
-        raise HTTPException(status_code=400, detail="Google did not return a refresh token")
-    oauth = build("oauth2", "v2", credentials=flow.credentials, cache_discovery=False)
+        raise HTTPException(
+            status_code=400,
+            detail="Google did not return a refresh token",
+        )
+
+    oauth = build(
+        "oauth2",
+        "v2",
+        credentials=flow.credentials,
+        cache_discovery=False,
+    )
+
     profile = oauth.userinfo().get().execute()
-    user = await db.scalar(select(User).where(User.email == profile["email"]))
+
+    user = await db.scalar(
+        select(User).where(User.email == profile["email"])
+    )
+
     if not user:
-        user = User(email=profile["email"], name=profile.get("name"), google_refresh_token=encrypt(flow.credentials.refresh_token))
+        user = User(
+            email=profile["email"],
+            name=profile.get("name"),
+            google_refresh_token=encrypt(
+                flow.credentials.refresh_token
+            ),
+        )
         db.add(user)
     else:
         user.name = profile.get("name")
-        user.google_refresh_token = encrypt(flow.credentials.refresh_token)
+        user.google_refresh_token = encrypt(
+            flow.credentials.refresh_token
+        )
+
     await db.commit()
     await db.refresh(user)
+
     response = RedirectResponse(f"{settings.frontend_url}/")
-    response.set_cookie("mm_session", sign_session(user.id), httponly=True, samesite="lax", secure=request.url.scheme == "https", max_age=30 * 24 * 3600)
+
+    response.set_cookie(
+        "mm_session",
+        sign_session(user.id),
+        httponly=True,
+        samesite="lax",
+        secure=request.url.scheme == "https",
+        max_age=30 * 24 * 3600,
+    )
+
     response.delete_cookie("oauth_state")
+    response.delete_cookie("oauth_code_verifier")
+
     return response
+
+    # ...rest of your existing callback code...
 
 
 @router.get("/auth/me")
