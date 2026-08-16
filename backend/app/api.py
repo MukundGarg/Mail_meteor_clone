@@ -185,30 +185,86 @@ async def list_campaigns(user: User = Depends(current_user), db: AsyncSession = 
 
 
 @router.post("/campaigns", status_code=201)
-async def create_campaign(payload: CampaignCreate, user: User = Depends(current_user), db: AsyncSession = Depends(get_db)) -> dict:
-    unique = {str(contact.email).casefold(): contact for contact in payload.contacts}
+async def create_campaign(
+    payload: CampaignCreate,
+    user: User = Depends(current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    if payload.allow_duplicate_emails:
+        contacts = list(payload.contacts)
+    else:
+        contacts = list(
+            {
+                str(contact.email).casefold(): contact
+                for contact in payload.contacts
+            }.values()
+        )
+
     campaign = Campaign(
         user_id=user.id,
         name=payload.name,
         subject=payload.subject,
         body=payload.body,
         source=payload.source,
-        spreadsheet_id=spreadsheet_id(payload.spreadsheet_id) if payload.spreadsheet_id else None,
+        spreadsheet_id=(
+            spreadsheet_id(payload.spreadsheet_id)
+            if payload.spreadsheet_id
+            else None
+        ),
         sheet_name=payload.sheet_name,
         status=CampaignStatus.SCHEDULED,
         scheduled_at=payload.scheduled_at.astimezone(UTC),
         send_interval_seconds=payload.send_interval_seconds,
-        total_count=len(unique),
+        total_count=len(contacts),
     )
+
     db.add(campaign)
     await db.flush()
-    for contact in unique.values():
-        merged = {**contact.data, "first_name": contact.first_name or "", "last_name": contact.last_name or "", "company": contact.company or ""}
-        db.add(Recipient(campaign_id=campaign.id, email=str(contact.email), first_name=contact.first_name, last_name=contact.last_name, company=contact.company, data=merged, next_send_at=campaign.scheduled_at))
+
+    for contact in contacts:
+        merged = {
+            **contact.data,
+            "first_name": contact.first_name or "",
+            "last_name": contact.last_name or "",
+            "company": contact.company or "",
+        }
+
+        db.add(
+            Recipient(
+                campaign_id=campaign.id,
+                email=str(contact.email),
+                first_name=contact.first_name,
+                last_name=contact.last_name,
+                company=contact.company,
+                data=merged,
+                next_send_at=campaign.scheduled_at,
+            )
+        )
+
     for index, step in enumerate(payload.followups, start=1):
-        db.add(SequenceStep(campaign_id=campaign.id, position=index, delay_days=step.delay_days, subject=step.subject, body=step.body))
-    db.add(CampaignEvent(campaign_id=campaign.id, kind="CREATED", detail={"recipients": len(unique)}))
+        db.add(
+            SequenceStep(
+                campaign_id=campaign.id,
+                position=index,
+                delay_days=step.delay_days,
+                subject=step.subject,
+                body=step.body,
+            )
+        )
+
+    db.add(
+        CampaignEvent(
+            campaign_id=campaign.id,
+            kind="CREATED",
+            detail={
+                "recipients": len(contacts),
+                "allow_duplicate_emails": payload.allow_duplicate_emails,
+            },
+        )
+    )
+
     await db.commit()
+
     return {"id": campaign.id}
 
 

@@ -28,6 +28,7 @@ class CampaignCreate(BaseModel):
     source: str = "MANUAL"
     spreadsheet_id: str | None = None
     sheet_name: str | None = None
+    allow_duplicate_emails: bool = False
 
 
 class TemplateCreate(BaseModel):

@@ -94,17 +94,27 @@ class SequenceStep(Base):
 
 class Recipient(Base):
     __tablename__ = "recipients"
-    __table_args__ = (UniqueConstraint("campaign_id", "email"),)
+
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid4)
-    campaign_id: Mapped[str] = mapped_column(ForeignKey("campaigns.id", ondelete="CASCADE"), index=True)
+    campaign_id: Mapped[str] = mapped_column(
+        ForeignKey("campaigns.id", ondelete="CASCADE"),
+        index=True,
+    )
     email: Mapped[str] = mapped_column(String(320), index=True)
     first_name: Mapped[str | None] = mapped_column(String(120))
     last_name: Mapped[str | None] = mapped_column(String(120))
     company: Mapped[str | None] = mapped_column(String(200))
     data: Mapped[dict] = mapped_column(JSON, default=dict)
-    status: Mapped[RecipientStatus] = mapped_column(Enum(RecipientStatus), default=RecipientStatus.READY, index=True)
+    status: Mapped[RecipientStatus] = mapped_column(
+        Enum(RecipientStatus),
+        default=RecipientStatus.READY,
+        index=True,
+    )
     current_step: Mapped[int] = mapped_column(Integer, default=-1)
-    next_send_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), index=True)
+    next_send_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        index=True,
+    )
     last_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     replied_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     gmail_thread_id: Mapped[str | None] = mapped_column(String(200))
@@ -112,8 +122,8 @@ class Recipient(Base):
     rfc_message_id: Mapped[str | None] = mapped_column(String(500))
     attempts: Mapped[int] = mapped_column(Integer, default=0)
     error: Mapped[str | None] = mapped_column(Text)
-    campaign: Mapped[Campaign] = relationship(back_populates="recipients")
 
+    campaign: Mapped[Campaign] = relationship(back_populates="recipients")
 
 class CampaignEvent(Base):
     __tablename__ = "campaign_events"
