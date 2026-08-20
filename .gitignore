@@ -12,3 +12,4 @@ backend/**/__pycache__
 .ruff_cache
 .DS_Store
 backend/mailpilot.db.backup
+.log
