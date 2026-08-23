@@ -13,3 +13,4 @@ backend/**/__pycache__
 .DS_Store
 backend/mailpilot.db.backup
 .log
+.uv-cache
